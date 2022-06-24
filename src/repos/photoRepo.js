@@ -1,56 +1,51 @@
 const mongoose = require("mongoose");
-const mongodb = require("mongodb");
-const createReadStream = require("fs");
-const fs = require("fs");
+const Photo = require("../schemas/PhotoSchema");
+const { getGridFSFilesByUser } = require("../service/gridfs-service");
+const { createGridFSReadStream } = require("../service/gridfs-service");
+const { createGridFSReadStreamArray } = require("../service/gridfs-service");
 
-const streamFiles = async () => {
+const NUM_PHOTOS_PER_CALL = 3;
+
+const getAllPhotoIds = async (contributorId) => {
   await mongoose.connect(process.env.DB_CONNECTION_STRING);
-  var gridFSBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-    bucketName: "test2",
+
+  console.log(contributorId);
+
+  const allPhotoIds = await Photo.find({
+    contributorId: mongoose.Types.ObjectId(contributorId),
   });
 
-  const filename =
-    "C:\\Users\\Dan\\workspace\\pictureSharingApp\\tempFolder\\bigImage.jpg";
+  console.log(allPhotoIds);
 
-  const _id = mongoose.Types.ObjectId();
-  const readStream = fs.createReadStream(filename);
-  const writeStream = gridFSBucket.createWriteStream({
-    _id,
-    filename,
-  });
-  let stream = readStream.pipe(writeStream);
-
-  stream.on("finish", async () => {
-    console.log("done");
-  });
+  return allPhotoIds;
 };
 
-const uploadPhoto = async () => {
-  //   var gridFSBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
-  //     bucketName: "test2",
-  //   });
+const getAllPhotos = async (contributorId, page) => {
+  await mongoose.connect(process.env.DB_CONNECTION_STRING);
 
-  //   const filename =
-  //     "C:\\Users\\Dan\\workspace\\pictureSharingApp\\tempFolder\\bigImage.jpg";
+  const skip = (Number(page) - 1) * NUM_PHOTOS_PER_CALL;
 
-  //   const _id = mongoose.Types.ObjectId();
-  //   const readStream = fs.createReadStream(filename);
-  //   const writeStream = gridFSBucket.createWriteStream({
-  //     _id,
-  //     filename,
-  //   });
-  //   await readStream.pipe(writeStream);
-  await streamFiles();
-  //mongoose.connection.close();
+  const allPhotoIds = await Photo.find({
+    contributorId: mongoose.Types.ObjectId(contributorId),
+  }).sort({ uploadDate: -1 });
+  // .skip(skip)
+  // .limit(NUM_PHOTOS_PER_CALL);
+
+  if (allPhotoIds) {
+    const objectIds = Object.keys(allPhotoIds)
+      .filter((key) => allPhotoIds[key].photoId)
+      .map((key) => allPhotoIds[key].photoId);
+
+    const images = await getGridFSFilesByUser(objectIds);
+
+    console.log(images);
+
+    return createGridFSReadStream(images);
+  } else {
+    return null;
+  }
+
+  return allPhotoIds;
 };
 
-const getPhoto = async (imageId) => {
-  var gridFSBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db);
-  const _id = mongoose.Types.ObjectId();
-  const filename = "bigImage.jpg";
-  const writeStream = fs.createWriteStream(filename);
-  const readStream = gridFSBucket.createReadStream({ _id, filename });
-  readStream.pipe(writeStream);
-};
-
-module.exports = { getPhoto, uploadPhoto };
+module.exports = { getAllPhotos };

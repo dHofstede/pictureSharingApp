@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 const dbPath = process.env.DB_CONNECTION_STRING;
+const CombinedStream = require("combined-stream2");
 
 const { GridFsStorage } = require("multer-gridfs-storage");
 const Grid = require("gridfs-stream");
@@ -27,24 +28,58 @@ conn.once("open", () => {
   console.log("DB Open");
 });
 
-const getGridFSFiles = (id) => {
+const getGridFSFilesByUser = (allUserPhotoIds) => {
   return new Promise((resolve, reject) => {
-    gfs.files.findOne({ _id: mongoose.Types.ObjectId(id) }, (err, files) => {
-      if (err) reject(err);
-
-      if (!files || files.length === 0) {
-        resolve(null);
-      } else {
-        resolve(files);
-      }
-    });
+    gfs.files
+      .find({
+        _id: {
+          $in: allUserPhotoIds,
+        },
+      })
+      .toArray(function (err, files) {
+        if (err) reject(err);
+        if (!files || files.length === 0) {
+          resolve(null);
+        } else {
+          resolve(files);
+        }
+      });
   });
 };
 
-const createGridFSReadStream = (id) => {
-  return gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(id));
+const createGridFSReadStream1 = (id) => {
+  return gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(id._id));
 };
 
+const createGridFSReadStream = (images) => {
+  const combinedStream = CombinedStream.create();
+
+  images.forEach((image) => {
+    combinedStream.append(
+      gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(image._id))
+    );
+  });
+
+  return combinedStream;
+};
+
+const createGridFSReadStream5 = (images) =>
+  images.map((image) =>
+    gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(image._id))
+  );
+
+const createGridFSReadStream2 = (id) => {
+  return gridFSBucket.openDownloadStream(
+    mongoose.Types.ObjectId("62b50ebbe4594ba0ffc75379")
+  );
+};
+
+const createGridFSReadStream3 = (id) => {
+  return gridFSBucket.openDownloadStream([
+    mongoose.Types.ObjectId("62b50ebbe4594ba0ffc75379"),
+    mongoose.Types.ObjectId("62b50ebbe4594ba0ffc75379"),
+  ]);
+};
 const storage = new GridFsStorage({
   url: dbPath,
   cache: true,
@@ -71,5 +106,5 @@ storage.on("connectionFailed", (err) => {
 
 module.exports = mongoose;
 module.exports.storage = storage;
-module.exports.getGridFSFiles = getGridFSFiles;
 module.exports.createGridFSReadStream = createGridFSReadStream;
+module.exports.getGridFSFilesByUser = getGridFSFilesByUser;

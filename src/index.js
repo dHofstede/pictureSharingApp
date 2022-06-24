@@ -23,7 +23,7 @@ app.use(
   expressjwt({
     secret: process.env.SECRET,
     algorithms: ["HS256"],
-  }).unless({ path: ["/authorize", "/createUser"] })
+  }).unless({ path: ["/authorize", "/createUser", "/viewPhotosByUser"] })
 );
 
 //Endpoints

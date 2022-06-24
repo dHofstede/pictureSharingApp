@@ -11,7 +11,7 @@ router.post("/authorize", async (req, res, next) => {
 
   if (user) {
     const accessToken = jwt.sign({ id: user._id }, process.env.SECRET, {
-      expiresIn: "1h",
+      expiresIn: "11h",
     });
 
     res.json({

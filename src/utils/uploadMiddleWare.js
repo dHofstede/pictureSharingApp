@@ -1,29 +1,9 @@
 const multer = require("multer");
-const { GridFsStorage } = require("multer-gridfs-storage");
-require("dotenv").config();
+const { storage } = require("../service/gridfs-service");
 
-// const storage = new GridFsStorage({
-//   url: "mongodb://yourhost:27017/database", //process.env.DB_CONNECTION_STRING,
-//   file: (req, file) => {
-//     return {
-//       bucketName: "photos",
-//     };
-//   },
-// });
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1000 }, //20 mb upload limit
+});
 
-// storage.on("connectionFailed", (err) => {
-//   console.log("conn fail");
-//   console.log(err);
-// });
-
-// const storage2 = null;
-
-// var upload = multer({
-//   storage: storage,
-//   onError: function (err, next) {
-//     console.log("error", err);
-//     next(err);
-//   },
-// });
-
-// module.exports = upload;
+module.exports = upload;

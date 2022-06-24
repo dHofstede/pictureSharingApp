@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const mongoose = require("mongoose");
 const User = require("../schemas/UserSchema");
+const Photo = require("../schemas/PhotoSchema");
 
 const generatePassword = async (password) => {
   const saltRounds = 10;
@@ -26,4 +27,22 @@ const createUser = async (email, password) => {
   return { id: newUser._id };
 };
 
-module.exports = { createUser };
+const addPhotoToUser = async (user, photoObjectId, isPublic) => {
+  await mongoose.connect(process.env.DB_CONNECTION_STRING);
+
+  console.log("isPublic: ", isPublic);
+  const uploadDate = new Date();
+
+  const newPhoto = new Photo({
+    photoId: photoObjectId,
+    contributorId: user.id,
+    uploadDate,
+    isPublic,
+  });
+
+  await newPhoto.save();
+
+  return true;
+};
+
+module.exports = { createUser, addPhotoToUser };

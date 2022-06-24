@@ -1,11 +1,15 @@
 const express = require("express");
 const path = require("path");
 const router = express.Router();
-const upload = require("../utils/uploadMiddleWare2");
+const upload = require("../utils/uploadMiddleWare");
 const mongoose = require("mongoose");
 require("dotenv").config();
+const userRepo = require("../repos/userRepo");
 const photoRepo = require("../repos/photoRepo");
 const asyncWrapper = require("../utils/async-wrapper");
+const { getGridFSFiles } = require("../service/gridfs-service");
+const { createGridFSReadStream } = require("../service/gridfs-service");
+var MultiStream = require("multistream");
 
 const createReadStream = require("fs");
 const createModel = require("mongoose-gridfs");
@@ -84,31 +88,15 @@ require("dotenv").config();
 //correct http codes
 //does it need to be async
 
-router.post("/uploadPhoto", async (req, res, next) => {
-  // const fileName = req.files.image.originalFilename;
-  // console.log(req.files.image.originalFilename);
-  // await photoRepo.uploadPhoto("bigImage.jpg");
-  // return res.status(200).json({ success: true });
-  //user passes photo
-  //validate file type
-  //validate size
-  //look for privacy setting
-});
-
-// router.post(
-//   "/uploadPhoto1",
-//   upload.single("image"),
-//   async function (req, res, next) {
-//     return res.status(200).json({ location: req.file });
-//   }
-// );
-
 router.post(
   "/uploadPhoto",
   upload.single("image"),
   asyncWrapper(async (req, res) => {
     if (req.file) {
       const { originalname, mimetype, id, size } = req.file;
+      const user = req.auth;
+      const isPublic = req.query.isPublic;
+      userRepo.addPhotoToUser(user, id, isPublic);
       res.send({ originalname, mimetype, id, size });
     } else {
       return res.status(400).json({ message: "No file" });
@@ -124,51 +112,87 @@ router.put("/deletePhoto", async (req, res, next) => {
   res.sendStatus(200);
 });
 
-// const connection = mongoose.createConnection(process.env.DB_CONNECTION_STRING);
+router.get(
+  "/viewPhotos/:id",
+  asyncWrapper(async (req, res) => {
+    const image = await getGridFSFiles(req.params.id);
 
-router.get("/viewPhotos/:id", async (req, res, next) => {
-  photoRepo.getPhoto(req.params.id);
+    if (!image) {
+      return res.status(404).send({ message: "Image not found" });
+    }
+    res.setHeader("content-type", image.contentType);
+    const readStream = createGridFSReadStream(req.params.id);
+    readStream.pipe(res);
+  })
+);
 
-  // console.log(req.params.id);
-  // //View paginated photos and comments from other users which are marked as public and not marked as deleted
-  // //View their own paginated photos and comments which are not marked as deleted
+router.get(
+  "/viewPhotosByUserOld/:id",
+  asyncWrapper(async (req, res) => {
+    const page = req.query.page;
+    console.log(page);
+    console.log(req.params);
+    const readStream = await photoRepo.getAllPhotos(req.params.id, page);
 
-  // var id = req.params.id;
-  // gfs = Grid(connection.db, mongoose.mongo);
+    readStream.pipe(res);
+  })
+);
 
-  // gfs
-  //   .collection("test")
-  //   .findOne({ _id: mongoose.Types.ObjectId(id) }, (err, file) => {
-  //     if (err) {
-  //       // report the error
-  //       console.log(err);
-  //     } else {
-  //       // detect the content type and set the appropriate response headers.
-  //       let mimeType = file.contentType;
-  //       if (!mimeType) {
-  //         mimeType = mime.lookup(file.filename);
-  //       }
-  //       res.set({
-  //         "Content-Type": mimeType,
-  //       });
+router.get(
+  "/viewPhotosByUser/:id",
+  asyncWrapper(async (req, res) => {
+    const page = req.query.page;
+    console.log(page);
+    console.log(req.params);
+    const readStreams = await photoRepo.getAllPhotos(req.params.id, page);
 
-  //       const readStream = gfs.createReadStream({
-  //         _id: id,
-  //       });
-  //       readStream.on("error", (err) => {
-  //         // report stream error
-  //         console.log(err);
-  //       });
-  //       // the response will be the file itself.
-  //       readStream.pipe(res);
-  //     }
-  //   });
+    Promise.all(readStreams)
+      .then((fileNames) => {
+        response.data = fileNames;
+        res.json(response);
+      })
+      .catch((error) => {
+        res.status(400).json(response);
+      });
+  })
+);
+router.get(
+  "/viewPhotosByUserOld/:id",
+  asyncWrapper(async (req, res) => {
+    const page = req.query.page;
+    console.log(page);
+    console.log(req.params);
 
-  res.sendStatus(200);
-});
+    const streams = await photoRepo.getAllPhotos(req.params.id, page);
+
+    streams.forEach((stream) => {
+      stream.pipe(res);
+    });
+  })
+);
+
+// router.get(
+//   "/viewPhotosByUser/:id",
+//   asyncWrapper(async (req, res) => {
+//     const page = req.query.page;
+//     console.log(page);
+//     console.log(req.params);
+
+//     const streams = await photoRepo.getAllPhotos(req.params.id, page);
+
+//     streams.forEach((stream) => {
+//       var rest;
+//       stream.pipe(rest);
+//       res.writeHead(200, { "Content-Type": "image/jpeg" });
+//       res.write(rest);
+//     });
+//     res.end;
+//   })
+// );
 
 router.put("/addCommentToPhoto", async (req, res, next) => {
-  //add comment to photo, record date, user, comment, and photoId
+  const { commentBody, commenterId, photoId } = req.body;
+  const commentDate = new Date();
 
   res.sendStatus(200);
 });
