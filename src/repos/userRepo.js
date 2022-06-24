@@ -30,7 +30,6 @@ const createUser = async (email, password) => {
 const addPhotoToUser = async (user, photoObjectId, isPublic) => {
   await mongoose.connect(process.env.DB_CONNECTION_STRING);
 
-  console.log("isPublic: ", isPublic);
   const uploadDate = new Date();
 
   const newPhoto = new Photo({
@@ -38,6 +37,7 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
     contributorId: user.id,
     uploadDate,
     isPublic,
+    isDeleted: false,
   });
 
   await newPhoto.save();
@@ -45,4 +45,13 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
   return true;
 };
 
-module.exports = { createUser, addPhotoToUser };
+const getUserFromId = async (userId) => {
+  await mongoose.connect(process.env.DB_CONNECTION_STRING);
+  const user = await User.findOne({
+    _id: mongoose.Types.ObjectId(userId),
+  });
+
+  return user;
+};
+
+module.exports = { createUser, addPhotoToUser, getUserFromId };

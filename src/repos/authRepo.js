@@ -11,6 +11,10 @@ const authenticateUser = async (email, password) => {
 
   const user = await User.findOne({ email });
 
+  if (!user) {
+    return { error: true, message: "invalid credentials" };
+  }
+
   const validCredentials = await isPasswordMatch(password, user.passwordHash);
 
   if (!validCredentials) {

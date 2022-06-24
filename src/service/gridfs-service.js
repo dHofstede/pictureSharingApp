@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 const dbPath = process.env.DB_CONNECTION_STRING;
-const CombinedStream = require("combined-stream2");
 
 const { GridFsStorage } = require("multer-gridfs-storage");
 const Grid = require("gridfs-stream");
@@ -47,39 +46,10 @@ const getGridFSFilesByUser = (allUserPhotoIds) => {
   });
 };
 
-const createGridFSReadStream1 = (id) => {
-  return gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(id._id));
+const createGridFSReadStream = (id) => {
+  return gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(id));
 };
 
-const createGridFSReadStream = (images) => {
-  const combinedStream = CombinedStream.create();
-
-  images.forEach((image) => {
-    combinedStream.append(
-      gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(image._id))
-    );
-  });
-
-  return combinedStream;
-};
-
-const createGridFSReadStream5 = (images) =>
-  images.map((image) =>
-    gridFSBucket.openDownloadStream(mongoose.Types.ObjectId(image._id))
-  );
-
-const createGridFSReadStream2 = (id) => {
-  return gridFSBucket.openDownloadStream(
-    mongoose.Types.ObjectId("62b50ebbe4594ba0ffc75379")
-  );
-};
-
-const createGridFSReadStream3 = (id) => {
-  return gridFSBucket.openDownloadStream([
-    mongoose.Types.ObjectId("62b50ebbe4594ba0ffc75379"),
-    mongoose.Types.ObjectId("62b50ebbe4594ba0ffc75379"),
-  ]);
-};
 const storage = new GridFsStorage({
   url: dbPath,
   cache: true,
@@ -108,3 +78,4 @@ module.exports = mongoose;
 module.exports.storage = storage;
 module.exports.createGridFSReadStream = createGridFSReadStream;
 module.exports.getGridFSFilesByUser = getGridFSFilesByUser;
+module.exports.gfs = gfs;

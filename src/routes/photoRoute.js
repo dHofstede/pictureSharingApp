@@ -1,217 +1,152 @@
 const express = require("express");
-const path = require("path");
 const router = express.Router();
-const upload = require("../utils/uploadMiddleWare");
-const mongoose = require("mongoose");
 require("dotenv").config();
+
+const upload = require("../utils/uploadMiddleWare");
 const userRepo = require("../repos/userRepo");
 const photoRepo = require("../repos/photoRepo");
-const asyncWrapper = require("../utils/async-wrapper");
-const { getGridFSFiles } = require("../service/gridfs-service");
 const { createGridFSReadStream } = require("../service/gridfs-service");
-var MultiStream = require("multistream");
-
-const createReadStream = require("fs");
-const createModel = require("mongoose-gridfs");
-
-const multer = require("multer");
-const { GridFsStorage } = require("multer-gridfs-storage");
-require("dotenv").config();
-
-// const storage = new GridFsStorage({
-//   url: process.env.DB_CONNECTION_STRING,
-//   file: (req, file) => {
-//     return {
-//       bucketName: "photos",
-//     };
-//   },
-// });
-
-// const uploadFile = async (req, res, next) => {
-//   const upload = multer({
-//     storage: storage,
-//   }).single("image");
-//   //const upload = multer().single('yourFileNameHere');
-
-//   upload(req, res, function (err) {
-//     if (err instanceof multer.MulterError) {
-//       // A Multer error occurred when uploading.
-//     } else if (err) {
-//       // An unknown error occurred when uploading.
-//     }
-//     // Everything went fine.
-//     next();
-//   });
-// };
-
-// const storage = new GridFsStorage({
-//   url: process.env.DB_CONNECTION_STRING,
-//   file: (req, file) => {
-//     return {
-//       bucketName: "photos",
-//     };
-//   },
-// });
-
-// const storage2 = null;
-
-// var upload = multer({
-//   storage: storage2,
-//   fileFilter: function (req, file, callback) {
-//     var ext = path.extname(file.originalname);
-//     if (ext !== ".png" && ext !== ".jpg" && ext !== ".gif" && ext !== ".jpeg") {
-//       return callback(new Error("Only images are allowed"));
-//     }
-//     callback(null, true);
-//   },
-//   limits: {
-//     fileSize: 1024 * 1024,
-//   },
-// }).single("image");
-
-//Endpoints
-//upload a photo
-//  specify public or private
-//  change privacy settings
-//delete a photo
-
-//view photos by user id
-//  viewer can view their own private and public photos and comments
-//  viewer can view public photos of others and comments
-//  paginated results
-//add comment to photo
-//  are comments viewable by all? does requesting photos from a user include the comments? if not who can see the comments?
 
 //don't forget unit tests
 
 //Final pass
 //correct http codes
 //does it need to be async
+//async wrapper go/no go
 
-router.post(
-  "/uploadPhoto",
-  upload.single("image"),
-  asyncWrapper(async (req, res) => {
+router.post("/uploadPhoto", upload.single("image"), async (req, res) => {
+  try {
     if (req.file) {
       const { originalname, mimetype, id, size } = req.file;
       const user = req.auth;
       const isPublic = req.query.isPublic;
+
       userRepo.addPhotoToUser(user, id, isPublic);
-      res.send({ originalname, mimetype, id, size });
+
+      res.status(201).json({ originalname, mimetype, id, size });
     } else {
       return res.status(400).json({ message: "No file" });
     }
-  })
-);
-
-router.put("/deletePhoto", async (req, res, next) => {
-  //don't actually delete, just update with deleted bool and date that it was deleted at.
-
-  //await userRepo.updateUser(updatedUserData); pass user id from user
-
-  res.sendStatus(200);
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
 });
 
-router.get(
-  "/viewPhotos/:id",
-  asyncWrapper(async (req, res) => {
-    const image = await getGridFSFiles(req.params.id);
+router.put("/deletePhoto", async (req, res, next) => {
+  const userId = req.auth.id;
+  const photoId = req.body.photoId;
 
-    if (!image) {
-      return res.status(404).send({ message: "Image not found" });
+  try {
+    const photoData = await photoRepo.getPhotoData(photoId);
+
+    if (!photoData) {
+      return res.sendStatus(404).json({ message: "Cannot find image" });
     }
-    res.setHeader("content-type", image.contentType);
-    const readStream = createGridFSReadStream(req.params.id);
-    readStream.pipe(res);
-  })
-);
 
-router.get(
-  "/viewPhotosByUserOld/:id",
-  asyncWrapper(async (req, res) => {
-    const page = req.query.page;
-    console.log(page);
-    console.log(req.params);
-    const readStream = await photoRepo.getAllPhotos(req.params.id, page);
+    const isOwnPhoto = photoData?.contributorId.toString() === userId;
 
-    readStream.pipe(res);
-  })
-);
+    if (isOwnPhoto) {
+      await photoRepo.deletePhoto(photoId);
 
-router.get(
-  "/viewPhotosByUser/:id",
-  asyncWrapper(async (req, res) => {
-    const page = req.query.page;
-    console.log(page);
-    console.log(req.params);
-    const readStreams = await photoRepo.getAllPhotos(req.params.id, page);
+      return res.status(200).json({ message: "Photo deleted" });
+    } else {
+      return res.status(403).json({ message: "Cannot access file" });
+    }
+  } catch {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
 
-    Promise.all(readStreams)
-      .then((fileNames) => {
-        response.data = fileNames;
-        res.json(response);
-      })
-      .catch((error) => {
-        res.status(400).json(response);
-      });
-  })
-);
-router.get(
-  "/viewPhotosByUserOld/:id",
-  asyncWrapper(async (req, res) => {
-    const page = req.query.page;
-    console.log(page);
-    console.log(req.params);
+router.get("/viewPhoto/:id", async (req, res) => {
+  const requesterUserId = req.auth.id;
+  const photoId = req.params.id;
 
-    const streams = await photoRepo.getAllPhotos(req.params.id, page);
+  try {
+    const photoData = await photoRepo.getPhotoData(photoId);
 
-    streams.forEach((stream) => {
-      stream.pipe(res);
-    });
-  })
-);
+    if (!photoData) {
+      return res.status(401).json({ message: "Cannot find image" });
+    }
 
-// router.get(
-//   "/viewPhotosByUser/:id",
-//   asyncWrapper(async (req, res) => {
-//     const page = req.query.page;
-//     console.log(page);
-//     console.log(req.params);
+    const isOwnPhoto = photoData.contributorId.toString() === requesterUserId;
 
-//     const streams = await photoRepo.getAllPhotos(req.params.id, page);
+    if (photoData.isPublic || isOwnPhoto) {
+      const readStream = createGridFSReadStream(photoId);
+      readStream.pipe(res);
+    } else {
+      res.status(403).json({ message: "Cannot access file" });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+});
 
-//     streams.forEach((stream) => {
-//       var rest;
-//       stream.pipe(rest);
-//       res.writeHead(200, { "Content-Type": "image/jpeg" });
-//       res.write(rest);
-//     });
-//     res.end;
-//   })
-// );
+router.get("/viewPhotosByUser/:id", async (req, res) => {
+  const page = req.query.page;
+  const contributorId = req.params.id;
+  const requesterUserId = req.auth.id;
 
-router.put("/addCommentToPhoto", async (req, res, next) => {
-  const { commentBody, commenterId, photoId } = req.body;
+  try {
+    const allPhotoData = await photoRepo.getPhotosDataByUser(
+      contributorId,
+      page,
+      requesterUserId
+    );
+
+    res.json(allPhotoData);
+  } catch (err) {
+    return res.sendStatus(500).json({ message: "Server error" });
+  }
+});
+
+router.put("/addComment", async (req, res, next) => {
+  const { comment, photoId } = req.body;
+  const commenterUserId = req.auth.id;
   const commentDate = new Date();
 
-  res.sendStatus(200);
+  try {
+    const user = await userRepo.getUserFromId(commenterUserId);
+
+    const result = await photoRepo.addCommentToPhoto(
+      comment,
+      photoId,
+      commenterUserId,
+      commentDate,
+      user.email
+    );
+
+    if (result.error) {
+      return res.status(result.code).json({ message: result.message });
+    } else {
+      return res.sendStatus(200);
+    }
+  } catch (err) {
+    return res.send(500).json({ message: "Server error" });
+  }
+});
+
+router.put("/changePhotoPrivacy", async (req, res, next) => {
+  const { isPublic, photoId } = req.body;
+  const userId = req.auth.id;
+
+  try {
+    const photoData = await photoRepo.getPhotoData(photoId);
+
+    if (!photoData) {
+      return res.status(401).json({ message: "Cannot find image" });
+    }
+
+    const isOwnPhoto = photoData.contributorId.toString() === userId;
+
+    if (isOwnPhoto) {
+      await photoRepo.updatePrivacy(photoId, isPublic);
+      return res.status(200).json({ message: "Photo updated" });
+    } else {
+      return res.status(403).json({ message: "Cannot access file" });
+    }
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
 });
 
 module.exports = router;
-
-/*the general idea
-User submits a photo, we want to use a stream to stream it into gridfs
-user photos array gets updated with ref to gridfs file?
-Also create a thumbnail version? endpoint to get thumbnails also passes id of each associated photo
-  That way a user could click on a photo and request the full res photo
-
-
-
-
-
-
-
-
-
-
-*/
