@@ -1,14 +1,9 @@
 const mongoose = require("mongoose");
 const Photo = require("../schemas/PhotoSchema");
-const { getGridFSFilesByUser } = require("../service/gridfs-service");
-const { createGridFSReadStream } = require("../service/gridfs-service");
-const { createGridFSReadStreamArray } = require("../service/gridfs-service");
 
 const NUM_PHOTOS_PER_CALL = 3;
 
 const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
-
   const skip = (Number(page) - 1) * NUM_PHOTOS_PER_CALL;
 
   // Get gridfs file for specific user.
@@ -64,7 +59,6 @@ const addCommentToPhoto = async (
 };
 
 const updatePrivacy = async (photoId, isPublic) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
   const photo = await Photo.findOne({
     photoId: mongoose.Types.ObjectId(photoId),
   });

@@ -93,9 +93,9 @@ router.get("/viewPhotosByUser/:id", async (req, res) => {
       requesterUserId
     );
 
-    res.json(allPhotoData);
+    return res.json(allPhotoData);
   } catch (err) {
-    return res.sendStatus(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 });
 

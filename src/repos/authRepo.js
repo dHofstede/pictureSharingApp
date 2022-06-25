@@ -7,8 +7,6 @@ const isPasswordMatch = async (password, toCompare) => {
 };
 
 const authenticateUser = async (email, password) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
-
   const user = await User.findOne({ email });
 
   if (!user) {

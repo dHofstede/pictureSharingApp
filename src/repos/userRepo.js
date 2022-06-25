@@ -9,8 +9,6 @@ const generatePassword = async (password) => {
 };
 
 const createUser = async (email, password) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
-
   const emailIsTaken = await User.exists({ email });
 
   if (emailIsTaken) {
@@ -23,13 +21,10 @@ const createUser = async (email, password) => {
 
   await newUser.save();
 
-  mongoose.connection.close();
   return { id: newUser._id };
 };
 
 const addPhotoToUser = async (user, photoObjectId, isPublic) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
-
   const uploadDate = new Date();
 
   const newPhoto = new Photo({
@@ -46,7 +41,6 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
 };
 
 const getUserFromId = async (userId) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
   const user = await User.findOne({
     _id: mongoose.Types.ObjectId(userId),
   });

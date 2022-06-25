@@ -1,5 +1,6 @@
 const express = require("express");
 const { expressjwt } = require("express-jwt");
+const mongoose = require("mongoose");
 const authRoute = require("./routes/authRoute");
 const userRoute = require("./routes/userRoute");
 const photoRoute = require("./routes/photoRoute");
@@ -20,6 +21,14 @@ app.use(authRoute);
 app.use(userRoute);
 app.use(photoRoute);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Example app listening at http://localhost:${process.env.PORT}`);
-});
+mongoose
+  .connect(process.env.DB_CONNECTION_STRING)
+  .catch((err) => console.error(err.stack))
+  .then((db) => {
+    app.locals.db = db;
+    app.listen(process.env.PORT, () => {
+      console.log(
+        `Example app listening at http://localhost:${process.env.PORT}`
+      );
+    });
+  });
