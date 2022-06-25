@@ -9,10 +9,9 @@ const generatePassword = async (password) => {
 };
 
 const createUser = async (email, password) => {
-  const emailIsTaken = await User.exists({ email });
+  const emailIsTaken = await User.exists({ email: email });
 
   if (emailIsTaken) {
-    mongoose.connection.close();
     return { error: true, message: "email is taken" };
   }
 
@@ -36,8 +35,6 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
   });
 
   await newPhoto.save();
-
-  return true;
 };
 
 const getUserFromId = async (userId) => {

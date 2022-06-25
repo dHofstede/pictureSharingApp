@@ -1,5 +1,7 @@
 const mongoose = require("mongoose");
+
 const Photo = require("../schemas/PhotoSchema");
+const { createGridFSReadStream } = require("../utils/gridfsService");
 
 const NUM_PHOTOS_PER_CALL = 3;
 
@@ -23,13 +25,14 @@ const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
 };
 
 const getPhotoData = async (photoId) => {
-  await mongoose.connect(process.env.DB_CONNECTION_STRING);
-
-  console.log("photoId: ", photoId);
-
   return await Photo.findOne({
     photoId: mongoose.Types.ObjectId(photoId),
   });
+};
+
+const getPhotoReadStream = async (photoId) => {
+  const readStream = createGridFSReadStream(photoId);
+  return readStream;
 };
 
 const addCommentToPhoto = async (
@@ -44,7 +47,7 @@ const addCommentToPhoto = async (
   });
 
   if (photo) {
-    photo.comments.push({
+    photo.comments.unshift({
       comment,
       commenterUserId,
       commentDate,
@@ -83,6 +86,7 @@ const deletePhoto = async (photoId) => {
 module.exports = {
   getPhotosDataByUser,
   getPhotoData,
+  getPhotoReadStream,
   addCommentToPhoto,
   updatePrivacy,
   deletePhoto,

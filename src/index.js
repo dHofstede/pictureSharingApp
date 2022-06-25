@@ -24,8 +24,7 @@ app.use(photoRoute);
 mongoose
   .connect(process.env.DB_CONNECTION_STRING)
   .catch((err) => console.error(err.stack))
-  .then((db) => {
-    app.locals.db = db;
+  .then(() => {
     app.listen(process.env.PORT, () => {
       console.log(
         `Example app listening at http://localhost:${process.env.PORT}`

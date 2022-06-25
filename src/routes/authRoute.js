@@ -7,18 +7,18 @@ const router = express.Router();
 router.post("/authorize", async (req, res, next) => {
   const { email, password } = req.body;
 
-  const user = await authRepo.authenticateUser(email, password);
+  const result = await authRepo.authenticateUser(email, password);
 
-  if (user.error) {
-    return res.status(401).json(user.message);
+  if (result.error) {
+    res.status(401).json(result.message);
   } else {
-    const accessToken = jwt.sign({ id: user._id }, process.env.SECRET, {
+    const accessToken = jwt.sign({ id: result._id }, process.env.SECRET, {
       expiresIn: "11h",
     });
 
     res.status(200).json({
       accessToken,
-      id: user.userId,
+      id: result._id,
     });
   }
 });

@@ -8,16 +8,20 @@ const router = express.Router();
 router.post("/createUser", async (req, res, next) => {
   const { email, password } = req.body;
 
-  const newUser = await userRepo.createUser(email, password);
+  try {
+    const result = await userRepo.createUser(email, password);
 
-  if (!newUser && newUser.error) {
-    return res.status(200).json({ message: newUser.message });
-  } else {
-    const accessToken = jwt.sign({ id: newUser.id }, process.env.SECRET, {
-      expiresIn: "11h",
-    });
+    if (!result || result.error) {
+      res.status(400).json({ message: result.message });
+    } else {
+      const accessToken = jwt.sign({ id: result.id }, process.env.SECRET, {
+        expiresIn: "11h",
+      });
 
-    return res.status(200).json({ id: newUser.id, accessToken });
+      res.status(200).json({ id: result.id, accessToken });
+    }
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 

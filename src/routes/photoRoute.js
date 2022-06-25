@@ -5,14 +5,6 @@ require("dotenv").config();
 const upload = require("../utils/uploadMiddleWare");
 const userRepo = require("../repos/userRepo");
 const photoRepo = require("../repos/photoRepo");
-const { createGridFSReadStream } = require("../service/gridfs-service");
-
-//don't forget unit tests
-
-//Final pass
-//correct http codes
-//does it need to be async
-//async wrapper go/no go
 
 router.post("/uploadPhoto", upload.single("image"), async (req, res) => {
   try {
@@ -25,10 +17,10 @@ router.post("/uploadPhoto", upload.single("image"), async (req, res) => {
 
       res.status(201).json({ originalname, mimetype, id, size });
     } else {
-      return res.status(400).json({ message: "No file" });
+      res.status(400).json({ message: "No file" });
     }
   } catch (err) {
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -40,7 +32,7 @@ router.put("/deletePhoto", async (req, res, next) => {
     const photoData = await photoRepo.getPhotoData(photoId);
 
     if (!photoData) {
-      return res.sendStatus(404).json({ message: "Cannot find image" });
+      return res.status(404).json({ message: "Cannot find image" });
     }
 
     const isOwnPhoto = photoData?.contributorId.toString() === userId;
@@ -48,9 +40,9 @@ router.put("/deletePhoto", async (req, res, next) => {
     if (isOwnPhoto) {
       await photoRepo.deletePhoto(photoId);
 
-      return res.status(200).json({ message: "Photo deleted" });
+      res.status(200).json({ message: "Photo deleted" });
     } else {
-      return res.status(403).json({ message: "Cannot access file" });
+      res.status(403).json({ message: "Cannot access file" });
     }
   } catch {
     return res.status(500).json({ message: "Server error" });
@@ -71,13 +63,13 @@ router.get("/viewPhoto/:id", async (req, res) => {
     const isOwnPhoto = photoData.contributorId.toString() === requesterUserId;
 
     if (photoData.isPublic || isOwnPhoto) {
-      const readStream = createGridFSReadStream(photoId);
+      const readStream = await photoRepo.getPhotoReadStream(photoId);
       readStream.pipe(res);
     } else {
       res.status(403).json({ message: "Cannot access file" });
     }
   } catch (err) {
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -93,9 +85,9 @@ router.get("/viewPhotosByUser/:id", async (req, res) => {
       requesterUserId
     );
 
-    return res.json(allPhotoData);
+    res.json(allPhotoData);
   } catch (err) {
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -116,12 +108,12 @@ router.put("/addComment", async (req, res, next) => {
     );
 
     if (result.error) {
-      return res.status(result.code).json({ message: result.message });
+      res.status(result.code).json({ message: result.message });
     } else {
-      return res.sendStatus(200);
+      res.status(200).json({ message: "Comment added" });
     }
   } catch (err) {
-    return res.send(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -140,12 +132,12 @@ router.put("/changePhotoPrivacy", async (req, res, next) => {
 
     if (isOwnPhoto) {
       await photoRepo.updatePrivacy(photoId, isPublic);
-      return res.status(200).json({ message: "Photo updated" });
+      res.status(200).json({ message: "Photo updated" });
     } else {
-      return res.status(403).json({ message: "Cannot access file" });
+      res.status(403).json({ message: "Cannot access file" });
     }
   } catch (err) {
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
