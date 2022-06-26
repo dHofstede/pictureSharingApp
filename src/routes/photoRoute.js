@@ -99,6 +99,10 @@ router.put("/addComment", async (req, res, next) => {
   try {
     const user = await userRepo.getUserFromId(commenterUserId);
 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     const result = await photoRepo.addCommentToPhoto(
       comment,
       photoId,

@@ -42,9 +42,7 @@ const addCommentToPhoto = async (
   commentDate,
   commenterEmail
 ) => {
-  const photo = await Photo.findOne({
-    photoId: mongoose.Types.ObjectId(photoId),
-  });
+  const photo = await getPhotoData(photoId);
 
   if (photo) {
     photo.comments.unshift({
@@ -53,34 +51,32 @@ const addCommentToPhoto = async (
       commentDate,
       commenterEmail,
     });
-    const result = await photo.save();
-
-    return result;
+    return await photo.save();
   } else {
     return { error: true, code: 404, message: "Photo not found" };
   }
 };
 
 const updatePrivacy = async (photoId, isPublic) => {
-  const photo = await Photo.findOne({
-    photoId: mongoose.Types.ObjectId(photoId),
-  });
+  const photo = await getPhotoData(photoId);
 
-  photo.isPublic = isPublic;
-  const result = await photo.save();
-
-  return result;
+  if (photo) {
+    photo.isPublic = isPublic;
+    return await photo.save();
+  } else {
+    return { error: true, code: 404, message: "Photo not found" };
+  }
 };
 
 const deletePhoto = async (photoId) => {
-  const photo = await Photo.findOne({
-    photoId: mongoose.Types.ObjectId(photoId),
-  });
+  const photo = await getPhotoData(photoId);
 
-  photo.isDeleted = true;
-  const result = await photo.save();
-
-  return result;
+  if (photo) {
+    photo.isDeleted = true;
+    return await photo.save();
+  } else {
+    return { error: true, code: 404, message: "Photo not found" };
+  }
 };
 
 module.exports = {

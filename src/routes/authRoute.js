@@ -18,7 +18,6 @@ router.post("/authorize", async (req, res, next) => {
 
     res.status(200).json({
       accessToken,
-      id: result._id,
     });
   }
 });

@@ -1,9 +1,4 @@
 const mongoose = require("mongoose");
-const Grid = require("gridfs-stream");
-
-Grid.mongo = mongoose.mongo;
-
-let gridFSBucket;
 
 mongoose.connection.once("open", () => {
   gridFSBucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
