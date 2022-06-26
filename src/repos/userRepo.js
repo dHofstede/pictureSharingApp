@@ -9,16 +9,20 @@ const generatePassword = async (password) => {
 };
 
 const createUser = async (email, password) => {
-  const emailIsTaken = await User.exists({ email: email });
+  const emailIsTaken = await User.exists({ email: { $in: [email] } });
 
   if (emailIsTaken) {
-    return { error: true, message: "email is taken" };
+    return { error: true, code: 400, message: "email is taken" };
   }
 
   const hashedPassword = await generatePassword(password);
   const newUser = new User({ email, passwordHash: hashedPassword });
 
-  await newUser.save();
+  try {
+    await newUser.save();
+  } catch (error) {
+    return { error: true, code: 400, message: error._message };
+  }
 
   return { id: newUser._id };
 };
@@ -34,7 +38,11 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
     isDeleted: false,
   });
 
-  await newPhoto.save();
+  try {
+    return await newPhoto.save();
+  } catch (error) {
+    return { error: true, code: 400, message: error._message };
+  }
 };
 
 const getUserFromId = async (userId) => {

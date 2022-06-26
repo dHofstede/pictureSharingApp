@@ -24,7 +24,19 @@ storage.on("connectionFailed", (err) => {
 
 const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1000 }, //20 mb upload limit
+  limits: { fileSize: Number(process.env.MAX_FILE_SIZE) },
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype == "image/png" ||
+      file.mimetype == "image/jpg" ||
+      file.mimetype == "image/jpeg"
+    ) {
+      cb(null, true);
+    } else {
+      cb(null, false);
+      return cb(new Error("Upload must be .png, .jpg or .jpeg"));
+    }
+  },
 });
 
 module.exports = upload;

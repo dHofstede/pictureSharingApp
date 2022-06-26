@@ -1,23 +1,31 @@
 const mongoose = require("mongoose");
 
 const photoSchema = new mongoose.Schema({
-  photoId: { type: mongoose.Types.ObjectId, ref: "photos.files" },
+  photoId: {
+    type: mongoose.Types.ObjectId,
+    ref: "photos.files",
+    required: true,
+  },
   comments: [
     {
       comment: {
         type: String,
         required: true,
       },
-      commentDate: Date,
-      commenterUserId: {
+      date: Date,
+      userId: {
         type: mongoose.Types.ObjectId,
         ref: "users",
         required: true,
       },
-      commenterEmail: String,
+      email: String,
     },
   ],
-  contributorId: { type: mongoose.Types.ObjectId, ref: "users" },
+  contributorId: {
+    type: mongoose.Types.ObjectId,
+    ref: "users",
+    required: true,
+  },
   uploadDate: Date,
   isPublic: {
     type: Boolean,

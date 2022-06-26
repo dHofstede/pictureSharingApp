@@ -13,9 +13,13 @@ router.post("/uploadPhoto", upload.single("image"), async (req, res) => {
       const user = req.auth;
       const isPublic = req.query.isPublic;
 
-      userRepo.addPhotoToUser(user, id, isPublic);
+      const createResult = await userRepo.addPhotoToUser(user, id, isPublic);
 
-      res.status(201).json({ originalname, mimetype, id, size });
+      if (createResult.error) {
+        res.status(createResult.code).json(createResult.message);
+      } else {
+        res.json({ originalname, mimetype, id, size });
+      }
     } else {
       res.status(400).json({ message: "No file" });
     }
@@ -38,9 +42,13 @@ router.put("/deletePhoto", async (req, res, next) => {
     const isOwnPhoto = photoData?.contributorId.toString() === userId;
 
     if (isOwnPhoto) {
-      await photoRepo.deletePhoto(photoId);
+      const deleteResult = await photoRepo.deletePhoto(photoId);
 
-      res.status(200).json({ message: "Photo deleted" });
+      if (deleteResult.error) {
+        res.status(result.code).json(result.message);
+      } else {
+        res.json({ message: "Photo deleted" });
+      }
     } else {
       res.status(403).json({ message: "Cannot access file" });
     }
@@ -93,28 +101,28 @@ router.get("/viewPhotosByUser/:id", async (req, res) => {
 
 router.put("/addComment", async (req, res, next) => {
   const { comment, photoId } = req.body;
-  const commenterUserId = req.auth.id;
-  const commentDate = new Date();
+  const userId = req.auth.id;
+  const date = new Date();
 
   try {
-    const user = await userRepo.getUserFromId(commenterUserId);
+    const user = await userRepo.getUserFromId(userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const result = await photoRepo.addCommentToPhoto(
+    const updateResult = await photoRepo.addComment({
       comment,
       photoId,
-      commenterUserId,
-      commentDate,
-      user.email
-    );
+      userId,
+      date,
+      email: user.email,
+    });
 
-    if (result.error) {
-      res.status(result.code).json({ message: result.message });
+    if (updateResult.error) {
+      res.status(updateResult.code).json({ message: updateResult.message });
     } else {
-      res.status(200).json({ message: "Comment added" });
+      res.json({ message: "Comment added" });
     }
   } catch (err) {
     res.status(500).json({ message: "Server error" });
@@ -128,15 +136,25 @@ router.put("/changePhotoPrivacy", async (req, res, next) => {
   try {
     const photoData = await photoRepo.getPhotoData(photoId);
 
-    if (!photoData) {
-      return res.status(401).json({ message: "Cannot find image" });
+    console.log(photoData);
+
+    if (photoData.error) {
+      return res.status(phoneData.code).json({ message: phoneData.message });
     }
 
     const isOwnPhoto = photoData.contributorId.toString() === userId;
 
     if (isOwnPhoto) {
-      await photoRepo.updatePrivacy(photoId, isPublic);
-      res.status(200).json({ message: "Photo updated" });
+      const updateResult = await photoRepo.changePhotoPrivacy(
+        photoId,
+        isPublic
+      );
+
+      if (updateResult.error) {
+        res.status(updateResult.code).json(updateResult.message);
+      } else {
+        res.json({ message: "Photo updated" });
+      }
     } else {
       res.status(403).json({ message: "Cannot access file" });
     }

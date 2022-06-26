@@ -1,12 +1,11 @@
 const mongoose = require("mongoose");
+require("dotenv").config();
 
 const Photo = require("../schemas/PhotoSchema");
 const { createGridFSReadStream } = require("../utils/gridfsService");
 
-const NUM_PHOTOS_PER_CALL = 3;
-
 const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
-  const skip = (Number(page) - 1) * NUM_PHOTOS_PER_CALL;
+  const skip = (Number(page) - 1) * process.env.MAX_IMAGE_REQUEST_COUNT;
 
   // Get gridfs file for specific user.
   const allPhotoIds = await Photo.find({
@@ -19,15 +18,19 @@ const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
   })
     .sort({ uploadDate: -1 })
     .skip(skip)
-    .limit(NUM_PHOTOS_PER_CALL);
+    .limit(process.env.MAX_IMAGE_REQUEST_COUNT);
 
   return allPhotoIds;
 };
 
 const getPhotoData = async (photoId) => {
-  return await Photo.findOne({
-    photoId: mongoose.Types.ObjectId(photoId),
-  });
+  try {
+    return await Photo.findOne({
+      photoId: mongoose.Types.ObjectId(photoId),
+    });
+  } catch (error) {
+    return { error: true, code: 500, message: "Server error" };
+  }
 };
 
 const getPhotoReadStream = async (photoId) => {
@@ -35,36 +38,30 @@ const getPhotoReadStream = async (photoId) => {
   return readStream;
 };
 
-const addCommentToPhoto = async (
-  comment,
-  photoId,
-  commenterUserId,
-  commentDate,
-  commenterEmail
-) => {
-  const photo = await getPhotoData(photoId);
+const addComment = async (data) => {
+  const photo = await getPhotoData(data.photoId);
 
   if (photo) {
-    photo.comments.unshift({
-      comment,
-      commenterUserId,
-      commentDate,
-      commenterEmail,
-    });
+    photo.comments.unshift(data);
     return await photo.save();
   } else {
-    return { error: true, code: 404, message: "Photo not found" };
+    return { error: true, message: "Photo not found", code: 404 };
   }
 };
 
-const updatePrivacy = async (photoId, isPublic) => {
+const changePhotoPrivacy = async (photoId, isPublic) => {
   const photo = await getPhotoData(photoId);
 
   if (photo) {
     photo.isPublic = isPublic;
-    return await photo.save();
+
+    try {
+      return await photo.save();
+    } catch (error) {
+      return { error: true, code: 400, message: error._message };
+    }
   } else {
-    return { error: true, code: 404, message: "Photo not found" };
+    return { error: true, message: "Photo not found", code: 404 };
   }
 };
 
@@ -75,7 +72,7 @@ const deletePhoto = async (photoId) => {
     photo.isDeleted = true;
     return await photo.save();
   } else {
-    return { error: true, code: 404, message: "Photo not found" };
+    return { error: true, message: "Photo not found", code: 404 };
   }
 };
 
@@ -83,7 +80,7 @@ module.exports = {
   getPhotosDataByUser,
   getPhotoData,
   getPhotoReadStream,
-  addCommentToPhoto,
-  updatePrivacy,
+  addComment,
+  changePhotoPrivacy,
   deletePhoto,
 };

@@ -7,16 +7,16 @@ const isPasswordMatch = async (password, toCompare) => {
 };
 
 const authenticateUser = async (email, password) => {
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email: { $in: [email] } });
 
   if (!user) {
-    return { error: true, message: "invalid credentials" };
+    return { error: true, code: 401, message: "invalid credentials" };
   }
 
   const validCredentials = await isPasswordMatch(password, user.passwordHash);
 
   if (!validCredentials) {
-    return { error: true, message: "invalid credentials" };
+    return { error: true, code: 401, message: "invalid credentials" };
   } else {
     return user;
   }

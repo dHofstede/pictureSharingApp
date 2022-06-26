@@ -1,5 +1,5 @@
 const express = require("express");
-const User = require("../schemas/UserSchema");
+const emailValidator = require("node-email-validation");
 const userRepo = require("../repos/userRepo");
 const jwt = require("jsonwebtoken");
 
@@ -8,17 +8,27 @@ const router = express.Router();
 router.post("/createUser", async (req, res, next) => {
   const { email, password } = req.body;
 
+  const validEmail = emailValidator.is_email_valid(email);
+
+  if (!validEmail) {
+    return res.status(400).json({ message: "Invalid email" });
+  }
+
   try {
-    const result = await userRepo.createUser(email, password);
+    const createResult = await userRepo.createUser(email, password);
 
-    if (!result || result.error) {
-      res.status(400).json({ message: result.message });
+    if (createResult.error) {
+      res.status(createResult.code).json({ message: createResult.message });
     } else {
-      const accessToken = jwt.sign({ id: result.id }, process.env.SECRET, {
-        expiresIn: "11h",
-      });
+      const accessToken = jwt.sign(
+        { id: createResult.id },
+        process.env.SECRET,
+        {
+          expiresIn: "11h",
+        }
+      );
 
-      res.status(200).json({ accessToken });
+      res.json({ accessToken });
     }
   } catch (err) {
     res.status(500).json({ message: "Server error" });
