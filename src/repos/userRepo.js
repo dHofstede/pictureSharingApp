@@ -37,11 +37,9 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
 };
 
 const getUserFromId = async (userId) => {
-  const user = await User.findOne({
+  return await User.findOne({
     _id: mongoose.Types.ObjectId(userId),
   });
-
-  return user;
 };
 
 module.exports = { createUser, addPhotoToUser, getUserFromId };

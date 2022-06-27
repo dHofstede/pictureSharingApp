@@ -8,7 +8,7 @@ const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
   const skip = (Number(page) - 1) * process.env.MAX_IMAGE_REQUEST_COUNT;
 
   // Get gridfs file for specific user.
-  const allPhotoIds = await Photo.find({
+  return await Photo.find({
     contributorId: mongoose.Types.ObjectId(contributorId), // userId that uploaded the photo
     $or: [
       { isPublic: true }, //photo must be public or...
@@ -19,8 +19,6 @@ const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
     .sort({ uploadDate: -1 })
     .skip(skip)
     .limit(process.env.MAX_IMAGE_REQUEST_COUNT);
-
-  return allPhotoIds;
 };
 
 const getPhotoData = async (photoId) => {
@@ -30,8 +28,7 @@ const getPhotoData = async (photoId) => {
 };
 
 const getPhotoReadStream = async (photoId) => {
-  const readStream = createGridFSReadStream(photoId);
-  return readStream;
+  return createGridFSReadStream(photoId);
 };
 
 const addComment = async (data) => {
