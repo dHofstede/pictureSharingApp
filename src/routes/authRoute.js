@@ -4,7 +4,7 @@ const authRepo = require("../repos/authRepo");
 
 const router = express.Router();
 
-router.post("/authorize", async (req, res, next) => {
+router.post("/authorize", async (req, res) => {
   const { email, password } = req.body;
 
   try {
@@ -22,7 +22,7 @@ router.post("/authorize", async (req, res, next) => {
       });
     }
   } catch (err) {
-    return res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 

@@ -24,13 +24,9 @@ const getPhotosDataByUser = async (contributorId, page, requesterUserId) => {
 };
 
 const getPhotoData = async (photoId) => {
-  try {
-    return await Photo.findOne({
-      photoId: mongoose.Types.ObjectId(photoId),
-    });
-  } catch (error) {
-    return { error: true, code: 500, message: "Server error" };
-  }
+  return await Photo.findOne({
+    photoId: mongoose.Types.ObjectId(photoId),
+  });
 };
 
 const getPhotoReadStream = async (photoId) => {
@@ -54,26 +50,15 @@ const changePhotoPrivacy = async (photoId, isPublic) => {
 
   if (photo) {
     photo.isPublic = isPublic;
-
-    try {
-      return await photo.save();
-    } catch (error) {
-      return { error: true, code: 400, message: error._message };
-    }
+    return await photo.save();
   } else {
     return { error: true, message: "Photo not found", code: 404 };
   }
 };
 
-const deletePhoto = async (photoId) => {
-  const photo = await getPhotoData(photoId);
-
-  if (photo) {
-    photo.isDeleted = true;
-    return await photo.save();
-  } else {
-    return { error: true, message: "Photo not found", code: 404 };
-  }
+const deletePhoto = async (photo) => {
+  photo.isDeleted = true;
+  return await photo.save();
 };
 
 module.exports = {

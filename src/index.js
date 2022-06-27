@@ -30,4 +30,13 @@ mongoose
         `Example app listening at http://localhost:${process.env.PORT}`
       );
     });
+    process.on("SIGTERM", () => {
+      server.close(() => {
+        mongoose.connection.close(false, () => {
+          process.exit(0);
+        });
+      });
+    });
   });
+
+module.exports = app;

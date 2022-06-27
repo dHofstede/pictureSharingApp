@@ -17,12 +17,7 @@ const createUser = async (email, password) => {
 
   const hashedPassword = await generatePassword(password);
   const newUser = new User({ email, passwordHash: hashedPassword });
-
-  try {
-    await newUser.save();
-  } catch (error) {
-    return { error: true, code: 400, message: error._message };
-  }
+  await newUser.save();
 
   return { id: newUser._id };
 };
@@ -38,11 +33,7 @@ const addPhotoToUser = async (user, photoObjectId, isPublic) => {
     isDeleted: false,
   });
 
-  try {
-    return await newPhoto.save();
-  } catch (error) {
-    return { error: true, code: 400, message: error._message };
-  }
+  return await newPhoto.save();
 };
 
 const getUserFromId = async (userId) => {

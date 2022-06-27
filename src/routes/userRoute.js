@@ -5,7 +5,7 @@ const jwt = require("jsonwebtoken");
 
 const router = express.Router();
 
-router.post("/createUser", async (req, res, next) => {
+router.post("/createUser", async (req, res) => {
   const { email, password } = req.body;
 
   const validEmail = emailValidator.is_email_valid(email);
