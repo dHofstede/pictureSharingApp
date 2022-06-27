@@ -14,7 +14,7 @@ router.post("/authorize", async (req, res) => {
       res.status(result.code).json(result.message);
     } else {
       const accessToken = jwt.sign({ id: result._id }, process.env.SECRET, {
-        expiresIn: "11h",
+        expiresIn: "1h",
       });
 
       res.json({
